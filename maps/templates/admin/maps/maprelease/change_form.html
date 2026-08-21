@@ -1,22 +1,32 @@
 {% extends "admin/change_form.html" %}
-{% load staticfiles admin_urls %}
+{% load static admin_urls %}
 
 {% block extrahead %}
     {{ block.super }}
     <link rel="stylesheet" href="{% static "css/admin.css" %}"/>
+    <style>
+        .submit-row input.release-button {
+            text-transform: none !important;
+        }
+    </style>
 {% endblock %}
 
 {% block submit_buttons_bottom %}
 <div class="submit-row">
     <input type="submit" value="Save" class="default" name="_save" />
-    {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
-    <p class="deletelink-box">
-        <a href="{% add_preserved_filters delete_url %}" class="deletelink">Delete</a>
-    </p>
+
     {% if object_id != None %}
-        <a class="button big" href="{% url 'admin:map_release' %}?ids={{ object_id }}">Release...</a>
+        <input type="submit"
+               value="Release..."
+               class="default release-button"
+               name="release"
+               formaction="{% url 'admin:map_release' %}?ids={{ object_id }}" />
     {% endif %}
+
     <input type="submit" value="Save and add another" name="_addanother" />
     <input type="submit" value="Save and continue editing" name="_continue" />
+
+    {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
+    <a class="deletelink" href="{% add_preserved_filters delete_url %}">Delete</a>
 </div>
 {% endblock %}

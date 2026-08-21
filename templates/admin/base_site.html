@@ -1,0 +1,175 @@
+{# /home/django/ddnet-django/templates/admin/base_site.html #}
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+{% endblock %}
+
+{% block branding %}
+    <a id="site-name" href="{% url 'admin:index' %}" class="branding-link">
+        <img src="{% static 'images/icons/ddnet2.svg' %}" alt="DDNet" class="branding-logo">
+        <span>DDNet Administration</span>
+    </a>
+{% endblock %}
+
+{% block userlinks %}
+    <a href="{{ site_url }}">VIEW HOMEPAGE</a> /
+    {% if user.is_active and user.is_staff %}
+        {% url 'django-admindocs-docroot' as docsroot %}
+        {% if docsroot %}
+            <a href="{{ docsroot }}">{% translate 'Documentation' %}</a> /
+        {% endif %}
+    {% endif %}
+    {% if user.has_usable_password %}
+        <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
+    {% endif %}
+    <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+        {% csrf_token %}
+        <button type="submit">{% translate 'Log out' %}</button>
+    </form>
+    {% include "admin/color_theme_toggle.html" %}
+{% endblock %}
+
+{% block extrahead %}
+    {{ block.super }}
+    <style>
+        :root {
+            --ddnet-header-height: 56px;
+            --ddnet-header-height-compact: 50px;
+            --ddnet-breadcrumbs-min: 36px;
+
+            --primary: #79aec8;
+            --secondary: #417690;
+            --accent: #f5dd5d;
+            --primary-fg: #fff;
+            --body-fg: #333;
+            --body-bg: #fff;
+            --body-quiet-color: #666;
+            --body-loud-color: #000;
+            --header-color: #ffc;
+            --header-branding-color: var(--accent);
+            --header-bg: var(--secondary);
+            --header-link-color: var(--primary-fg);
+            --breadcrumbs-fg: #c4dce8;
+            --breadcrumbs-link-fg: var(--body-bg);
+            --breadcrumbs-bg: var(--primary);
+            --link-fg: #447e9b;
+            --link-hover-color: #036;
+            --link-selected-fg: #5b80b2;
+            --hairline-color: #e8e8e8;
+            --border-color: #ccc;
+            --error-fg: #ba2121;
+            --message-success-bg: #dfd;
+            --message-warning-bg: #ffc;
+            --message-error-bg: #ffefef;
+            --darkened-bg: #f8f8f8;
+            --selected-bg: #e4e4e4;
+            --selected-row: #ffc;
+            --button-fg: #fff;
+            --button-bg: var(--primary);
+            --button-hover-bg: #609ab6;
+            --default-button-bg: var(--secondary);
+            --default-button-hover-bg: #205067;
+            --close-button-bg: #888;
+            --close-button-hover-bg: #747474;
+            --delete-button-bg: #ba2121;
+            --delete-button-hover-bg: #a41515;
+            --object-tools-fg: var(--button-fg);
+            --object-tools-bg: var(--close-button-bg);
+            --object-tools-hover-bg: var(--close-button-hover-bg);
+        }
+        .branding-link {
+             display: flex;
+             align-items: center;
+             gap: 6px;
+             text-decoration: none;
+        }
+
+        .branding-logo {
+            height: 64px;
+            width: auto;
+            margin-top: 0;
+            flex-shrink: 0;
+        }
+
+        #site-name span {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--header-link-color);
+        }
+
+        #header {
+            min-height: var(--ddnet-header-height);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        body.sticky #header {
+            min-height: var(--ddnet-header-height-compact);
+        }
+
+        .breadcrumbs {
+            min-height: var(--ddnet-breadcrumbs-min);
+            display: flex;
+            align-items: center;
+            padding-top: 0.25rem;
+            padding-bottom: 0.25rem;
+        }
+
+        #user-tools {
+            display: flex;
+            gap: .5rem;
+            align-items: center;
+            justify-content: flex-end;
+            margin-left: auto;
+            flex-wrap: wrap; /* allow wrapping to next line */
+        }
+
+        #user-tools .theme-toggle,
+        #header .theme-toggle {
+            order: 2;
+            flex: 1 1 100%;
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 4px;
+        }
+
+        a.skip-to-content-link,
+        body > a.skip-to-content-link,
+        :root a.skip-to-content-link {
+            display: none !important;
+            position: absolute !important;
+            left: -9999px !important;
+        }
+
+        body, input, select, textarea, button {
+            font-family: "Inter", "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+            font-size: 15px;
+        }
+
+        #user-tools form[action$="logout/"] button {
+            background: none !important;
+            color: var(--header-link-color) !important;
+            border: none !important;
+            padding: 0 !important;
+            font: inherit !important;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        #user-tools form[action$="logout/"] button:hover {
+            color: var(--accent) !important;
+            text-decoration: none;
+        }
+    </style>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+{% block bodyclass %}{{ block.super }}{% endblock %}
+{% block nav-sidebar %}{{ block.super }}{% endblock %}
+{% block footer %}{{ block.super }}{% endblock %}
+{% block scripts %}{{ block.super }}{% endblock %}

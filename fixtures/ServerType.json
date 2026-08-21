@@ -66,18 +66,63 @@
         "model": "maps.servertype",
         "pk": 8,
         "fields": {
-            "name": "DDmaX",
+            "name": "DDmaX.Nut",
+            "offset": 0,
+            "multiplier": 4
+        }
+    },
+	    {
+        "model": "maps.servertype",
+        "pk": 9,
+        "fields": {
+            "name": "DDmaX.Easy",
+            "offset": 0,
+            "multiplier": 4
+        }
+    },
+	    {
+        "model": "maps.servertype",
+        "pk": 10,
+        "fields": {
+            "name": "DDmaX.Next",
+            "offset": 0,
+            "multiplier": 4
+        }
+    },
+	    {
+        "model": "maps.servertype",
+        "pk": 11,
+        "fields": {
+            "name": "DDmaX.Pro",
             "offset": 0,
             "multiplier": 4
         }
     },
     {
         "model": "maps.servertype",
-        "pk": 9,
+        "pk": 12,
         "fields": {
             "name": "Oldschool",
             "offset": 0,
             "multiplier": 6
+        }
+    },
+	    {
+        "model": "maps.servertype",
+        "pk": 13,
+        "fields": {
+            "name": "Fun",
+            "offset": 0,
+            "multiplier": 0
+        }
+    },
+	    {
+        "model": "maps.servertype",
+        "pk": 14,
+        "fields": {
+            "name": "Event",
+            "offset": 0,
+            "multiplier": 0
         }
     }
 ]

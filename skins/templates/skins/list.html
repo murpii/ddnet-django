@@ -5,7 +5,7 @@
 {% block section_title %}Skins database{% endblock %}
 
 {% block scripts %}
-    {% load staticfiles %}
+    {% load static %}
     <script type="text/javascript" src="{% static "scripts/skins.js" %}"></script>
 {% endblock %}
 
@@ -44,7 +44,7 @@
                 {% with is_skin_selected=selected_skins_to_download|contains:i.skin_image.name %}
                     <img id="skin-add-to-download-button-{{ forloop.counter0 }}" class="skin-add-to-download-button"
                          src="{% static "images/icons/add_icon.png" %}" title="Add skin to download"
-                         onclick="postAddSkinToDownload({{ forloop.counter0 }}, '{{ i.skin_image.name }}');"
+                         onclick="postAddSkinToDownload({{ forloop.counter0 }}, '{{ i.skin_image.name|escapejs }}');"
                             {# if skin is not selected then hide the remove button#}
                             {% if is_skin_selected %}
                          style="display: none;"
@@ -53,7 +53,7 @@
                     <img id="skin-remove-from-download-button-{{ forloop.counter0 }}"
                          class="skin-remove-from-download-button"
                          src="{% static "images/icons/remove_icon.png" %}" title="Remove skin from download"
-                         onclick="postRemoveSkinFromDownload({{ forloop.counter0 }}, '{{ i.skin_image.name }}');"
+                         onclick="postRemoveSkinFromDownload({{ forloop.counter0 }}, '{{ i.skin_image.name|escapejs }}');"
                             {# if skin is not selected then hide the remove button#}
                             {% if not is_skin_selected %}
                          style="display: none;"

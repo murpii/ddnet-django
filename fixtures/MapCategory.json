@@ -65,38 +65,6 @@
     },
     {
         "model": "maps.mapcategory",
-        "pk": 9,
-        "fields": {
-            "name": "DDRACEMAX.EASY MAPS",
-            "order": 1
-        }
-    },
-    {
-        "model": "maps.mapcategory",
-        "pk": 10,
-        "fields": {
-            "name": "DDRACEMAX.NEXT MAPS",
-            "order": 2
-        }
-    },
-    {
-        "model": "maps.mapcategory",
-        "pk": 11,
-        "fields": {
-            "name": "DDRACEMAX.NUT MAPS",
-            "order": 4
-        }
-    },
-    {
-        "model": "maps.mapcategory",
-        "pk": 12,
-        "fields": {
-            "name": "DDRACEMAX.PRO MAPS",
-            "order": 3
-        }
-    },
-    {
-        "model": "maps.mapcategory",
         "pk": 13,
         "fields": {
             "name": "JETPACK MAPS",

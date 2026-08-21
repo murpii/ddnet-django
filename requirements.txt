@@ -1,7 +1,8 @@
-# The requirements file contains all python libraries which must be installed to run the project
-# @see https://pip.pypa.io/en/stable/reference/pip_install/#example-requirements-file for details
-django
-Pillow
-pytz
-msgpack-python
-pypng>=0.0.12
+asgiref==3.10.0
+Django==5.1.13
+mysqlclient==2.2.7; platform_system != "Windows"
+pillow==12.0.0
+psycopg2-binary==2.9.12; platform_system != "Windows"
+PyMySQL==1.1.2; platform_system == "Windows"
+sqlparse==0.5.3
+tzdata==2025.2; platform_system == "Windows"
