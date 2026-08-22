@@ -1,22 +1,35 @@
 {% extends "admin/change_form.html" %}
-{% load staticfiles admin_urls %}
+{% load static admin_urls %}
 
 {% block extrahead %}
     {{ block.super }}
-    <link rel="stylesheet" href="{% static "css/admin.css" %}"/>
+    <link rel="stylesheet" href="{% static "css/admin.css" %}" />
 {% endblock %}
 
 {% block submit_buttons_bottom %}
+<style>
+    /* Fix button capitalization */
+    .fix-button {
+        text-transform: none !important;
+    }
+</style>
+
 <div class="submit-row">
+    <!-- Left-aligned buttons -->
     <input type="submit" value="Save" class="default" name="_save" />
-    {% url opts|admin_urlname:'delete' original.pk|admin_urlquote as delete_url %}
-    <p class="deletelink-box">
-        <a href="{% add_preserved_filters delete_url %}" class="deletelink">Delete</a>
-    </p>
+
     {% if object_id != None %}
-        <a class="button big" href="{% url 'admin:map_fix' %}?ids={{ object_id }}">Fix...</a>
+        <a class="button default fix-button"
+           href="{% url "admin:map_fix" %}?ids={{ object_id }}">
+            Fix...
+        </a>
     {% endif %}
+
     <input type="submit" value="Save and add another" name="_addanother" />
     <input type="submit" value="Save and continue editing" name="_continue" />
+
+    <!-- Right-aligned delete link -->
+    {% url opts|admin_urlname:"delete" original.pk|admin_urlquote as delete_url %}
+    <a class="deletelink" href="{% add_preserved_filters delete_url %}">Delete</a>
 </div>
 {% endblock %}

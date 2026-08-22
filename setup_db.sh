@@ -1,17 +1,8 @@
 #!/bin/sh
+set -eu
 
-# setup django-internal stuff
-./manage.py migrate
+./.venv/bin/python manage.py migrate --database=default
+./.venv/bin/python manage.py migrate --database=ddnet_db
+./.venv/bin/python manage.py migrate --database=skins_db
 
-# migrations for all the apps
-./manage.py makemigrations maps
-./manage.py makemigrations servers
-./manage.py makemigrations skins
-
-# create tables
-./manage.py migrate maps --database=ddnet_db
-./manage.py migrate servers
-./manage.py migrate skins --database=skins_db
-
-# load fixtures for maps app
-./manage.py loaddata MapCategory.json  ServerType.json --database=ddnet_db
+./.venv/bin/python manage.py loaddata MapCategory.json ServerType.json --database=ddnet_db

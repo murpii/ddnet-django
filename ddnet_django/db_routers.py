@@ -36,15 +36,12 @@ class DefaultRouter:
         '''
         Return whether a relation between two objects is allowed.
         '''
-        if obj1._meta.app_label == obj2._meta.app_label:
-            return True
-        return False
+        db1 = APP_DATABASES.get(obj1._meta.app_label, 'default')
+        db2 = APP_DATABASES.get(obj2._meta.app_label, 'default')
+        return db1 == db2
 
     def allow_migrate(self, db, app_label, model_name=None, **hints):
         '''
         Return whether migrations are allowed depending on a given database and appname.
         '''
-        try:
-            return APP_DATABASES[app_label] == db
-        except KeyError:
-            return None
+        return APP_DATABASES.get(app_label, 'default') == db

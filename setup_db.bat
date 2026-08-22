@@ -1,15 +1,15 @@
-:: setup django-internal stuff
-python manage.py migrate
+@echo off
+setlocal
+set "DJANGO_SETTINGS_MODULE=ddnet_django.settings_local"
 
-:: migrations for all the apps
-python manage.py makemigrations maps
-python manage.py makemigrations servers
-python manage.py makemigrations skins
+".venv\Scripts\python.exe" manage.py migrate --database=default
+if errorlevel 1 exit /b %errorlevel%
 
-:: create tables
-python manage.py migrate maps --database=ddnet_db
-python manage.py migrate servers
-python manage.py migrate skins --database=skins_db
+".venv\Scripts\python.exe" manage.py migrate --database=ddnet_db
+if errorlevel 1 exit /b %errorlevel%
 
-:: load fixtures for maps app
-python manage.py loaddata MapCategory.json  ServerType.json --database=ddnet_db
+".venv\Scripts\python.exe" manage.py migrate --database=skins_db
+if errorlevel 1 exit /b %errorlevel%
+
+".venv\Scripts\python.exe" manage.py loaddata MapCategory.json ServerType.json --database=ddnet_db
+endlocal

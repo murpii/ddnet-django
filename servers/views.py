@@ -67,7 +67,7 @@ class BroadcastView(PermissionRequiredMixin, TemplateView):
 
 
 class BroadcastLogView(PermissionRequiredMixin, View):
-    permission_required = 'maps.can_broadcast'
+    permission_required = 'servers.can_broadcast'
 
     def get(self, request, *args, **kwargs):
         '''Return plaintext broadcastlog.'''

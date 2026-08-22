@@ -118,10 +118,10 @@ class ReleaseLogView(PermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         '''Return plaintext releaselog if it exists otherwise 404.'''
 
-        if current_release_log() is not None:
-            return HttpResponse(str(current_release_log()))
-        else:
+        log = current_release_log()
+        if log is None:
             raise Http404
+        return HttpResponse(log)
 
 
 class MapFixView(ProcessListView):
@@ -160,7 +160,7 @@ class FixLogView(PermissionRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         '''Return plaintext fixlog if it exists otherwise 404.'''
 
-        if current_fix_log() is not None:
-            return HttpResponse(str(current_fix_log()))
-        else:
+        log = current_fix_log()
+        if log is None:
             raise Http404
+        return HttpResponse(log)

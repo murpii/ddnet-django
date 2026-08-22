@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/django/ddnet-django/.venv/bin/python
 
 import os
 import sys

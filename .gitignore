@@ -1,8 +1,23 @@
 __pycache__
-ddnet_django/settings_private.py
-*/migrations
 db.sqlite3
 .tags*
 .DS_Store
 media
 .idea
+
+# secrets / local config (any nesting, just in case)
+**/settings_private.py
+**/settings_local.py
+config.ini
+*.env
+.env
+
+# local venv
+.venv/
+
+# runtime artifacts (may hold secrets or noise, server-only)
+nohup.out
+*.pid
+release.log
+fix.log
+*.sock

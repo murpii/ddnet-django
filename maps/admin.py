@@ -2,7 +2,8 @@ from django.contrib.admin import ModelAdmin
 from django.http import HttpResponseRedirect
 from django.contrib import admin as dj_admin
 from django.urls import reverse
-from django.conf.urls import url
+from django.urls import re_path as url
+from django.contrib.admin import helpers, widgets
 
 from ddnet_django import admin
 from .models import (
@@ -39,7 +40,7 @@ class MapCategoryAdmin(ModelAdmin):
 
 
 def release_action(modeladmin, request, queryset):
-    selected = request.POST.getlist(dj_admin.ACTION_CHECKBOX_NAME)
+    selected = request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)
     return HttpResponseRedirect(reverse('admin:map_release') + '?ids={}'.format(','.join(selected)))
 
 
@@ -72,7 +73,7 @@ class MapReleaseAdmin(ModelAdmin):
 
 
 def fix_action(modeladmin, request, queryset):
-    selected = request.POST.getlist(dj_admin.ACTION_CHECKBOX_NAME)
+    selected = request.POST.getlist(helpers.ACTION_CHECKBOX_NAME)
     return HttpResponseRedirect(reverse('admin:map_fix') + '?ids={}'.format(','.join(selected)))
 
 
