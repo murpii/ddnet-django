@@ -1,0 +1,37 @@
+{% extends "admin/base_site.html" %}
+{% load i18n rank_links %}
+{% block extrastyle %}{{ block.super }}
+<style>
+.save-detail { max-width:1100px; }
+.save-detail table { width:100%; }
+.save-detail table th { width:220px; }
+.save-detail details { border:1px solid var(--hairline-color); margin:1.5rem 0; }
+.save-detail details summary { cursor:pointer; font-weight:600; padding:1rem; }
+.save-detail details pre { border-top:1px solid var(--hairline-color); margin:0; max-height:420px; overflow:auto; padding:1rem; white-space:pre-wrap; overflow-wrap:anywhere; }
+.save-detail .form-row { display:grid; gap:.5rem; max-width:720px; }
+.save-detail textarea { box-sizing:border-box; max-width:100%; width:100%; }
+.save-detail .submit-row { display:flex; justify-content:flex-start; }
+.save-detail .submit-row input { float:none; margin:0; min-height:40px; }
+.save-detail .game-actions { align-items:flex-start; display:flex; flex-direction:column; gap:.35rem; }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'admin:ranks_savecontrol_changelist' %}?tab=history">Savegame Control</a> &rsaquo; {{ action.action_id }}</div>{% endblock %}
+{% block content %}
+{% with save=action.details.save %}
+<div class="save-detail">
+<div class="module"><h2>{{ action.summary }}</h2><table>
+<tr><th>Action</th><td>{{ action.action_id }}</td></tr>
+<tr><th>Created</th><td>{{ action.created_at }} by {{ action.created_by_name }}</td></tr>
+<tr><th>Reason</th><td>{{ action.reason }}</td></tr>
+<tr><th>Map</th><td>{{ save.map_name }}</td></tr><tr><th>Save Code</th><td>{{ save.code }}</td></tr>
+<tr><th>Players</th><td>{% for player in save.players %}<a href="{{ player|player_profile_url }}">{{ player }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+<tr><th>Original Saved At</th><td>{{ save.saved_at_display|date:'N j, Y, P' }}</td></tr><tr><th>Deleted At</th><td>{{ save.deleted_at_display|date:'N j, Y, P'|default:'Unavailable' }}</td></tr>
+<tr><th>Game UUID</th><td>{% if save.game_uuid %}<div class="game-actions"><span>{{ save.game_uuid }}</span><a class="button" href="/teehistorian2demo.php?gameid={{ save.game_uuid|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td></tr>
+<tr><th>Status</th><td>{{ action.status }}</td></tr>
+{% if action.details.source_action_id %}<tr><th>Restored From History Action</th><td><a href="{% url 'admin:ranks_savecontrol_detail' action_id=action.details.source_action_id %}">{{ action.details.source_action_id }}</a></td></tr>{% endif %}
+</table></div>
+<details><summary>Exact Save Data</summary><pre>{{ save.savegame }}</pre></details>
+{% if action.state_key == 'missing' %}<form method="post" action="{% url 'admin:ranks_savecontrol_restore_again' action_id=action.action_id %}">{% csrf_token %}<fieldset class="module aligned"><div class="form-row">{{ restore_form.reason.errors }}{{ restore_form.reason.label_tag }} {{ restore_form.reason }}</div></fieldset><div class="submit-row"><input type="submit" class="default" value="Restore Again To Live Database"></div></form>{% endif %}
+</div>
+{% endwith %}
+{% endblock %}

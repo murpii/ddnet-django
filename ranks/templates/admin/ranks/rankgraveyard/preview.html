@@ -1,0 +1,94 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; <a href="{% url 'admin:ranks_rankgraveyard_changelist' %}">Records</a>
+&rsaquo; Confirm Action
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rank-graveyard-page">
+<div class="graveyard-warning">
+    <strong>Nothing Changes Until You Confirm</strong>
+    <p id="selection-summary">Select one or more records to move out of the live database.</p>
+    {% if preview.checkpoint_margin %}<p>Source player: {{ preview.source_player }}. Checkpoint margin: {{ preview.checkpoint_margin }}.</p>{% endif %}
+</div>
+{{ form.non_field_errors }}
+{% include "admin/ranks/rankgraveyard/_preview_rows.html" %}
+
+<form id="graveyard-form" method="post" action="{% url 'admin:ranks_rankgraveyard_commit' %}">
+    {% csrf_token %}
+    {{ form.target }}
+    {{ form.all_records }}
+    <fieldset class="module aligned">
+        <div class="form-row">
+            {{ form.reason.errors }}
+            {{ form.reason.label_tag }} {{ form.reason }}
+        </div>
+    </fieldset>
+    <div class="submit-row">
+        <a class="button cancel-link" href="{% url 'admin:ranks_rankgraveyard_changelist' %}">Cancel</a>
+        <input id="graveyard-submit" type="submit" value="Move Selected Out Of Live Database" class="deletelink" disabled>
+    </div>
+</form>
+<script>
+const rankSelections = () => Array.from(document.querySelectorAll('.rank-selection'));
+const selectAllRanks = document.getElementById('select-all-ranks');
+const selectEntirePlayer = document.getElementById('select-entire-player');
+const allRecords = document.getElementById('id_all_records');
+const graveyardSubmit = document.getElementById('graveyard-submit');
+const selectionSummary = document.getElementById('selection-summary');
+const updateSelection = () => {
+    const selections = rankSelections();
+    const selected = selections.filter((checkbox) => checkbox.checked);
+    const raceCount = selected.reduce((total, checkbox) => total + Number(checkbox.dataset.raceCount), 0);
+    const teamCount = selected.reduce((total, checkbox) => total + Number(checkbox.dataset.teamCount), 0);
+    const entirePlayer = Boolean(selectEntirePlayer?.checked);
+    allRecords.value = entirePlayer ? '1' : '';
+    selections.forEach((checkbox) => { checkbox.disabled = entirePlayer; });
+    graveyardSubmit.disabled = !entirePlayer && selected.length === 0;
+    if (selectAllRanks) {
+        selectAllRanks.checked = selected.length === selections.length && selected.length > 0;
+        selectAllRanks.indeterminate = selected.length > 0 && selected.length < selections.length;
+    }
+    selectionSummary.textContent = entirePlayer
+        ? `This will move every record associated with ${selectEntirePlayer.dataset.player} out of the live database.`
+        : selected.length
+        ? `This will move ${raceCount} race row${raceCount === 1 ? '' : 's'} and ${teamCount} team rank${teamCount === 1 ? '' : 's'} out of the live rankings.`
+        : 'Select one or more records to move out of the live database.';
+};
+if (selectAllRanks) {
+    selectAllRanks.addEventListener('change', () => {
+        rankSelections().forEach((checkbox) => { checkbox.checked = selectAllRanks.checked; });
+        updateSelection();
+    });
+}
+selectEntirePlayer?.addEventListener('change', updateSelection);
+document.addEventListener('change', (event) => {
+    if (event.target.matches('.rank-selection')) updateSelection();
+});
+document.querySelectorAll('.player-map-group[data-load-url]').forEach((group) => {
+    group.addEventListener('toggle', async () => {
+        if (!group.open || group.dataset.loaded) return;
+        group.dataset.loaded = '1';
+        const content = group.querySelector('.player-map-content');
+        content.textContent = 'Loading Individual Ranks...';
+        try {
+            const response = await fetch(group.dataset.loadUrl, {credentials: 'same-origin'});
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            content.innerHTML = await response.text();
+            window.initializePreviewTables(content);
+            updateSelection();
+        } catch (error) {
+            delete group.dataset.loaded;
+            content.textContent = 'Could Not Load Individual Ranks. Close And Reopen To Retry.';
+        }
+    });
+});
+updateSelection();
+</script>
+</div>
+{% endblock %}

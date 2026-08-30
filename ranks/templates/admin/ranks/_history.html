@@ -1,0 +1,60 @@
+{% load rank_links %}
+<style>
+    #history_list .history-player-cell { min-width: 320px; width: 28%; }
+    #history_list .history-player-links { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+    #history_list .history-source-player { font-weight: 600; }
+    #history_list .history-players { margin-top: 5px; }
+    #history_list .history-players summary { cursor: pointer; white-space: nowrap; }
+    #history_list .history-players .history-player-links { margin-top: 5px; }
+</style>
+<section class="module">
+    <h2>History</h2>
+    <form method="get">
+        <input type="hidden" name="submit" value="history">
+        <div class="fields">
+            {% for field in history_form %}
+            <div class="field">
+                {{ field.errors }}
+                {{ field.label_tag }}
+                {{ field }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="actions"><input type="submit" value="Search History" class="default"></div>
+    </form>
+</section>
+
+<div class="results table-wrap">
+<table id="history_list" data-sort-table>
+    <thead>
+        <tr>
+            <th data-sort-type="date"><button type="button" class="sort-button">Created</button></th>
+            <th><button type="button" class="sort-button">Type</button></th>
+            <th><button type="button" class="sort-button">Map Scope</button></th>
+            <th><button type="button" class="sort-button">Players</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button">Content</button></th>
+            <th><button type="button" class="sort-button">Admin</button></th>
+            <th><button type="button" class="sort-button">Reason</button></th>
+            <th><button type="button" class="sort-button">Status</button></th>
+            <th><span class="visually-hidden">Action</span></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for action in actions %}
+        <tr class="{% cycle 'row1' 'row2' %} history-row">
+            <td data-sort="{{ action.created_at|date:'c' }}">{{ action.created_at }}</td>
+            <td><span class="kind-badge {{ action.target_type }}">{{ action.type_label }}</span></td>
+            <td data-sort="{{ action.map_name|default:'' }}">{% if action.map_name %}{{ action.map_name }}{% elif action.map_count %}{{ action.map_count }} Maps{% else %}Unavailable{% endif %}</td>
+            <td class="history-player-cell" data-sort="{{ action.player_name|default:'' }}">{% if action.player_names %}<div class="history-player-links">{% for player_name in action.player_names|slice:':4' %}<a{% if player_name == action.player_name %} class="history-source-player"{% endif %} href="{{ player_name|player_profile_url }}">{{ player_name }}</a>{% endfor %}</div>{% if action.player_names|length > 4 %}<details class="history-players"><summary>Show {{ action.player_names|length|add:'-4' }} More Player{{ action.player_names|length|add:'-4'|pluralize }}</summary><div class="history-player-links">{% for player_name in action.player_names|slice:'4:' %}<a href="{{ player_name|player_profile_url }}">{{ player_name }}</a>{% endfor %}</div></details>{% endif %}{% else %}Unavailable{% endif %}</td>
+            <td data-sort="{{ action.content_count }}">{% if action.target_type == 'save_restore' %}1 Save{% else %}{{ action.finish_count }} Normal Rank{{ action.finish_count|pluralize }}{% if action.team_count %} + {{ action.team_count }} Team Rank{{ action.team_count|pluralize }}{% endif %}{% endif %}</td>
+            <td>{{ action.created_by_name }}</td>
+            <td class="history-reason">{{ action.reason }}</td>
+            <td><span class="status-badge {{ action.state_key }}">{{ action.state }}</span></td>
+            <td>{% if action.target_type == 'save_restore' %}<a class="button" href="{% url 'admin:ranks_savecontrol_detail' action_id=action.action_id %}" title="{{ action.summary }}">View</a>{% else %}<a class="button" href="{% url 'admin:ranks_rankgraveyard_detail' action_id=action.action_id %}" title="{{ action.summary }}">View</a>{% endif %}</td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="9" class="empty">No Records actions were found.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>

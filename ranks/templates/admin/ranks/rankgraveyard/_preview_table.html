@@ -1,0 +1,78 @@
+{% load rank_links %}
+<h2>{{ table_heading }}</h2>
+{% if table_note %}<p>{{ table_note }}</p>{% endif %}
+<div class="results table-wrap">
+<table data-sort-table>
+    <thead>
+        <tr>
+            <th><button type="button" class="sort-button">Type</button></th>
+            <th><button type="button" class="sort-button">Map</button></th>
+            <th><button type="button" class="sort-button">Players</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button">Time</button></th>
+            <th data-sort-type="date"><button type="button" class="sort-button">Finished</button></th>
+            <th><button type="button" class="sort-button">Server</button></th>
+            <th><button type="button" class="sort-button">Content</button></th>
+            <th><button type="button" class="sort-button">GameID</button></th>
+            <th>Checkpoints</th>
+            {% if preview.selection_enabled %}<th class="selection-column">Select</th>{% elif preview.show_entry_actions %}<th>Action</th>{% endif %}
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in table_entries %}
+        <tr class="{% cycle 'row1' 'row2' %}{% if row.source_match %} source-rank{% endif %}">
+            <td><span class="kind-badge {{ row.kind }}">{{ row.kind_label }}</span></td>
+            <td>{{ row.map_name }}</td>
+            <td class="players" data-sort="{{ row.players }}">{% for player_name in row.player_names %}<a href="{{ player_name|player_profile_url }}"{% if player_name == preview.source_player %} class="source-player"{% endif %}>{{ player_name }}</a>{% if player_name == preview.source_player %}<span class="source-badge">Scan Match</span>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td data-sort="{{ row.time_seconds }}">{{ row.time_seconds|floatformat:2 }}</td>
+            <td data-sort="{{ row.finished_at|date:'c' }}">{{ row.finished_at }}</td>
+            <td>{{ row.server }}</td>
+            <td><span class="impact-badge">{{ row.impact }}</span></td>
+            <td class="game-id">
+                {% if row.game_id %}
+                    <div class="game-actions"><a href="{% url 'admin:ranks_rankgraveyard_changelist' %}?live-map_name={{ row.map_name|urlencode }}&amp;live-game_id={{ row.game_id|urlencode }}">{{ row.game_id }}</a><a class="button" href="/teehistorian2demo.php?gameid={{ row.game_id|urlencode }}">Teehistorian Demo</a></div>
+                {% else %}
+                    Unavailable
+                {% endif %}
+            </td>
+            <td>
+                <details class="checkpoint-details">
+                    <summary>View Checkpoints</summary>
+                    {% for checkpoint_row in row.checkpoint_rows %}
+                        <div class="checkpoint-player"><strong>{{ checkpoint_row.player_name }}</strong></div>
+                        {% if checkpoint_row.signature_matches %}
+                            <div>Direct Match: {% for signature in checkpoint_row.signature_matches %}Signature {{ signature.number }}{% if not forloop.last %}, {% endif %}{% endfor %}</div>
+                        {% elif preview.checkpoint_signatures %}
+                            <div>Included through a linked team rank. No direct signature match.</div>
+                        {% endif %}
+                        {% if checkpoint_row.checkpoints %}
+                            <ol class="checkpoint-list">
+                            {% for checkpoint in checkpoint_row.checkpoints %}<li{% if checkpoint.selected %} class="selected"{% endif %}><strong>{{ checkpoint.label }}</strong><span>{{ checkpoint.time|floatformat:2 }}s</span></li>{% endfor %}
+                            </ol>
+                        {% else %}
+                            <p>No checkpoint times recorded.</p>
+                        {% endif %}
+                    {% empty %}
+                        <p>No linked race rows are available.</p>
+                    {% endfor %}
+                </details>
+            </td>
+            {% if preview.selection_enabled %}
+            <td class="selection-column">
+                <input type="checkbox" class="rank-selection" name="selected" value="{{ row.graveyard_token }}" form="graveyard-form" data-race-count="{{ row.race_count }}" data-team-count="{{ row.team_count }}" aria-label="Select {{ row.kind_label }} For {{ row.players }}"{% if row.graveyard_checked %} checked{% endif %}>
+            </td>
+            {% elif preview.show_entry_actions %}
+            <td>
+                {% if row.restore_token %}
+                    <button type="submit" class="button" form="restore-form" name="target" value="{{ row.restore_token }}">Restore {{ row.kind_label }} To Live Database</button>
+                {% elif row.restored %}
+                    <span class="impact-badge">In Live Database</span>
+                {% endif %}
+            </td>
+            {% endif %}
+        </tr>
+    {% empty %}
+        <tr><td colspan="{% if preview.selection_enabled or preview.show_entry_actions %}10{% else %}9{% endif %}">No ranks were available.</td></tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>

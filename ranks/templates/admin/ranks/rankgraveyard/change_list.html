@@ -1,0 +1,618 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static rank_links %}
+
+{% block extrahead %}{{ block.super }}
+<script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+<script src="{% static 'admin/js/jquery.init.js' %}"></script>
+<script src="{% static 'admin/js/admin/RelatedObjectLookups.js' %}"></script>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+    .rank-graveyard { max-width: 1600px; }
+    .rank-graveyard .module { margin-bottom: 24px; }
+    .rank-graveyard .tabs {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 24px;
+        border-bottom: 1px solid var(--hairline-color);
+    }
+    .rank-graveyard .tabs a {
+        padding: 10px 16px;
+        border-radius: 6px 6px 0 0;
+        color: var(--body-quiet-color);
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .rank-graveyard .tabs a:hover { background: var(--darkened-bg); }
+    .rank-graveyard .tabs a.current {
+        margin-bottom: -1px;
+        border: 1px solid var(--hairline-color);
+        border-bottom-color: var(--body-bg);
+        background: var(--body-bg);
+        color: var(--body-fg);
+    }
+    .rank-graveyard .category-tabs {
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: 0;
+    }
+    .rank-graveyard .category-tabs a,
+    .rank-graveyard .category-tabs span {
+        padding: 8px 12px;
+        border: 1px solid var(--hairline-color);
+        border-radius: 999px;
+    }
+    .rank-graveyard .category-tabs a.current {
+        margin-bottom: 0;
+        border-color: var(--link-fg);
+        background: var(--selected-row);
+    }
+    .rank-graveyard .category-tabs .disabled {
+        color: var(--body-quiet-color);
+        opacity: 0.45;
+    }
+    .rank-graveyard .rank-group-header,
+    .rank-graveyard .rank-group summary {
+        display: grid;
+        grid-template-columns: minmax(220px, 2fr) minmax(180px, 1fr) 100px;
+        gap: 16px;
+        align-items: center;
+        padding: 10px 14px;
+    }
+    .rank-graveyard .rank-group-header {
+        background: var(--darkened-bg);
+        color: var(--body-quiet-color);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+    .rank-graveyard .rank-group-header .sort-button { text-align: left; }
+    .rank-graveyard .rank-group {
+        border-bottom: 1px solid var(--hairline-color);
+    }
+    .rank-graveyard .rank-group summary { cursor: pointer; }
+    .rank-graveyard .rank-group[open] summary { background: var(--selected-row); }
+    .rank-graveyard .rank-group .table-wrap { margin: 0; padding: 8px 14px 18px; }
+    .rank-graveyard .rank-group-header .sort-button::after { content: "  ↕"; opacity: 0.45; }
+    .rank-graveyard .rank-group-header .sort-button[aria-sort="ascending"]::after { content: "  ▲"; opacity: 1; }
+    .rank-graveyard .rank-group-header .sort-button[aria-sort="descending"]::after { content: "  ▼"; opacity: 1; }
+    .rank-graveyard .fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        padding: 18px;
+    }
+    .rank-graveyard .field label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--body-quiet-color);
+        font-size: 0.8125rem;
+        font-weight: 600;
+    }
+    .rank-graveyard .field { position: relative; }
+    .rank-graveyard .field.player-only-disabled,
+    .rank-graveyard .field.map-only-disabled { opacity: 0.45; }
+    .rank-graveyard .field-help {
+        position: absolute;
+        top: 0;
+        right: 0;
+        color: var(--link-fg);
+        cursor: help;
+    }
+    .rank-graveyard .field input,
+    .rank-graveyard .field select {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 36px;
+    }
+    .rank-graveyard .map-lookup { display: flex; align-items: center; gap: 8px; }
+    .rank-graveyard .map-lookup input { flex: 1; width: auto; min-width: 0; }
+    .rank-graveyard .map-lookup .related-lookup {
+        box-sizing: border-box;
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        background: var(--button-bg) url("{% static 'admin/img/search.svg' %}") center no-repeat;
+    }
+    .rank-graveyard .map-lookup .related-lookup:hover { background-color: var(--button-hover-bg); }
+    .rank-graveyard .actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 0 18px 18px;
+    }
+    .rank-graveyard .row-actions { display: flex; gap: 6px; white-space: nowrap; }
+    .rank-graveyard .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .rank-graveyard .button.disabled { opacity: .45; cursor: not-allowed; }
+    .rank-graveyard .table-wrap {
+        overflow-x: auto;
+        margin-bottom: 24px;
+    }
+    .rank-graveyard table { width: 100%; table-layout: auto; }
+    .rank-graveyard th { text-transform: none; }
+    .rank-graveyard td { vertical-align: middle; }
+    .rank-graveyard .players { min-width: 130px; }
+    .rank-graveyard .players a { white-space: nowrap; }
+    .rank-graveyard .game-id { font-family: var(--font-family-monospace); }
+    .rank-graveyard .game-actions { display: flex; align-items: flex-start; flex-direction: column; gap: 6px; }
+    .rank-graveyard .game-actions > a:first-child { overflow-wrap: anywhere; }
+    .rank-graveyard .checkpoint-values {
+        display: block;
+        max-width: 420px;
+        margin-top: 4px;
+        color: var(--body-quiet-color);
+        font-family: var(--font-family-monospace);
+        overflow-wrap: anywhere;
+    }
+    .rank-graveyard .kind-badge,
+    .rank-graveyard .impact-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--selected-row);
+        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .rank-graveyard .kind-badge.team { color: var(--link-selected-fg); }
+    .rank-graveyard .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .rank-graveyard .status-badge.live { background: var(--message-success-bg); }
+    .rank-graveyard .status-badge.partial { background: var(--message-warning-bg); }
+    .rank-graveyard .status-badge.outside { background: var(--message-error-bg); }
+    .rank-graveyard .history-reason { min-width: 180px; max-width: 360px; }
+    .rank-graveyard .history-row td { vertical-align: top; }
+    .rank-graveyard .history-players { min-width: 260px; }
+    .rank-graveyard .history-source-player { display: block; font-weight: 600; }
+    .rank-graveyard .history-source-player + .history-players { margin-top: 4px; }
+    .rank-graveyard .history-players summary { cursor: pointer; white-space: nowrap; }
+    .rank-graveyard .history-player-links {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(110px, 1fr));
+        gap: 3px 12px;
+        padding-top: 6px;
+        white-space: nowrap;
+    }
+    .rank-graveyard .sort-button {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-transform: inherit;
+        cursor: pointer;
+    }
+    .rank-graveyard th[aria-sort="ascending"] .sort-button::after { content: "  ▲"; }
+    .rank-graveyard th[aria-sort="descending"] .sort-button::after { content: "  ▼"; }
+    .rank-graveyard th:not([aria-sort]) .sort-button::after { content: "  ↕"; opacity: 0.45; }
+    .rank-graveyard .bulk-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin: 0 0 24px;
+        padding: 16px 18px;
+        border: 1px solid var(--hairline-color);
+        border-left: 4px solid var(--delete-button-bg);
+        background: var(--darkened-bg);
+    }
+    .rank-graveyard .bulk-action p { margin: 4px 0 0; }
+    .rank-graveyard .bulk-action .deletelink {
+        color: var(--button-fg);
+        background: var(--delete-button-bg);
+        white-space: nowrap;
+    }
+    .rank-graveyard .bulk-action .deletelink:hover { background: var(--delete-button-hover-bg); }
+    .rank-graveyard .empty { padding: 18px; color: var(--body-quiet-color); }
+    .rank-loading {
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px;
+        border: 1px solid var(--hairline-color);
+        border-radius: 8px;
+        background: var(--body-bg);
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18);
+        font-weight: 600;
+    }
+    .rank-loading[hidden] { display: none; }
+    .rank-loading-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--hairline-color);
+        border-top-color: var(--link-fg);
+        border-radius: 50%;
+        animation: rank-loading-spin 0.7s linear infinite;
+    }
+    @keyframes rank-loading-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) {
+        .rank-loading-spinner { animation: none; }
+    }
+    @media (max-width: 767px) {
+        .rank-graveyard .bulk-action { align-items: flex-start; flex-direction: column; }
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; Rank Control
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="rank-graveyard">
+<div class="rank-loading" role="status" aria-live="polite" hidden>
+    <span class="rank-loading-spinner" aria-hidden="true"></span>
+    <span>Loading Records...</span>
+</div>
+{% if error %}<p class="errornote">{{ error }}</p>{% endif %}
+
+<nav class="tabs" aria-label="Records Sections">
+    <a href="?tab=live" class="{% if active_tab == 'live' %}current{% endif %}"{% if active_tab == 'live' %} aria-current="page"{% endif %}>Live Database</a>
+    <a href="?tab=checkpoint" class="{% if active_tab == 'checkpoint' %}current{% endif %}"{% if active_tab == 'checkpoint' %} aria-current="page"{% endif %}>EXPERIMENTAL: Checkpoint Scan</a>
+    <a href="?tab=history" class="{% if active_tab == 'history' %}current{% endif %}"{% if active_tab == 'history' %} aria-current="page"{% endif %}>History</a>
+</nav>
+<datalist id="rank-map-options">
+    {% for map_name in map_names %}<option value="{{ map_name }}"></option>{% endfor %}
+</datalist>
+
+{% if active_tab == 'live' %}
+<section class="module">
+    <h2>Find Records In Live Database</h2>
+    <form method="get">
+        <input type="hidden" name="submit" value="live">
+        <div class="fields">
+            {% for field in search_form %}
+            <div class="field">
+                {{ field.errors }}
+                {{ field.label_tag }}
+                {% if field.help_text %}<span class="field-help" tabindex="0" title="{{ field.help_text }}" aria-label="{{ field.help_text }}">ⓘ</span>{% endif %}
+                {% if field.name == 'map_name' %}<div class="map-lookup">{{ field }}<a href="{% url 'admin:maps_map_changelist' %}?_to_field=name&amp;_popup=1" id="lookup_{{ field.id_for_label }}" class="related-lookup" title="Choose Map" aria-label="Choose Map"></a></div>{% else %}{{ field }}{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="actions">
+            <input type="submit" value="Search Live Database" class="default">
+            <span class="help">Enter a map, enter a player, or enter a map with GameID.</span>
+            <span class="help" id="map-rank-limit-warning" hidden>Loading all players may take a while.</span>
+        </div>
+    </form>
+</section>
+
+{% if results %}
+{% if cross_map_search %}
+<nav class="tabs category-tabs" aria-label="Map Categories">
+    {% for tab in category_tabs %}
+        {% if tab.available %}<a href="?{{ category_query }}&amp;category={{ tab.name|urlencode }}" class="{% if tab.selected %}current{% endif %}"{% if tab.selected %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% else %}<span class="disabled" aria-disabled="true">{{ tab.label }}</span>{% endif %}
+    {% endfor %}
+</nav>
+<div class="results" data-rank-groups>
+    <div class="rank-group-header">
+        <button type="button" class="sort-button" data-group-sort="map">Map</button>
+        <button type="button" class="sort-button" data-group-sort="category">Category</button>
+        <button type="button" class="sort-button" data-group-sort="records">Records</button>
+    </div>
+    {% for group in result_groups %}
+        <details class="rank-group" data-map="{{ group.map_name }}" data-category="{{ group.category }} {{ group.stars|default_if_none:'' }}" data-records="{{ group.rows|length }}">
+            <summary>
+                <span>{{ group.map_name }}</span>
+                <span>{{ group.category|default:'Unknown' }}{% if group.stars is not None %}, {{ group.stars }} Star{{ group.stars|pluralize }}{% endif %}</span>
+                <span>{{ group.rows|length }} Record{{ group.rows|length|pluralize }}</span>
+            </summary>
+                    <div class="table-wrap">
+                    <table data-sort-table>
+                        <thead><tr>
+                            <th><button type="button" class="sort-button">Type</button></th>
+                            <th><button type="button" class="sort-button">Players</button></th>
+                            <th data-sort-type="number" aria-sort="ascending"><button type="button" class="sort-button">Time</button></th>
+                            <th data-sort-type="date"><button type="button" class="sort-button">Finished</button></th>
+                            <th><button type="button" class="sort-button">Server</button></th>
+                            <th><button type="button" class="sort-button">Content</button></th>
+                            <th><button type="button" class="sort-button">GameID</button></th>
+                            <th><span class="visually-hidden">Action</span></th>
+                        </tr></thead>
+                        <tbody>
+                        {% for row in group.rows %}
+                            <tr class="{% cycle 'row1' 'row2' %}">
+                                <td><span class="kind-badge {{ row.kind }}">{{ row.kind_label }}</span></td>
+                                <td class="players" data-sort="{{ row.players }}">{% for player in row.player_links %}<a href="?{{ player.checkpoint_query }}">{{ player.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+                                <td data-sort="{{ row.time_value }}">{{ row.time_value|floatformat:2 }}</td>
+                                <td data-sort="{{ row.finished_at|date:'c' }}">{{ row.finished_at }}</td>
+                                <td>{{ row.server }}</td>
+                                <td><span class="impact-badge">{{ row.impact }}</span></td>
+                                <td class="game-id">{% if row.game_id %}<div class="game-actions"><a href="{% url 'admin:ranks_rankgraveyard_changelist' %}?live-map_name={{ row.map_name|urlencode }}&amp;live-game_id={{ row.game_id|urlencode }}">{{ row.game_id }}</a><a class="button" href="/teehistorian2demo.php?gameid={{ row.game_id|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td>
+                                <td><div class="row-actions">{% if row.checkpoint_query %}<a class="button" href="?{{ row.checkpoint_query }}">Checkpoint Scan</a>{% elif row.kind == 'rank' %}<button type="button" class="button disabled" disabled title="This rank has no recorded checkpoint times.">No Checkpoints</button>{% endif %}<a class="button" href="{% url 'admin:ranks_rankgraveyard_preview' %}?target={{ row.token|urlencode }}">Review</a></div></td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    </div>
+        </details>
+    {% endfor %}
+</div>
+{% if result_page.has_other_pages %}
+<nav class="paginator" aria-label="Player Records Pages">
+    {% if result_page.has_previous %}<a href="?{{ page_query }}&amp;page={{ result_page.previous_page_number }}">Previous</a>{% endif %}
+    <span>{{ result_page.number }} / {{ result_page.paginator.num_pages }}</span>
+    {% if result_page.has_next %}<a href="?{{ page_query }}&amp;page={{ result_page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% else %}
+{% if map_only_search %}
+<p class="help">{% if map_rank_limit %}Top {{ map_rank_limit }} selected.{% else %}All players selected. Loading may take a while.{% endif %} {{ result_page.paginator.count }} unique player record{{ result_page.paginator.count|pluralize }} found.</p>
+{% endif %}
+<div class="results table-wrap">
+<table id="result_list" data-sort-table>
+    <thead>
+        <tr>
+            <th><button type="button" class="sort-button">Type</button></th>
+            <th><button type="button" class="sort-button">Map</button></th>
+            {% if cross_map_search %}<th><button type="button" class="sort-button">Category</button></th>{% endif %}
+            <th><button type="button" class="sort-button">Players</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button" title="Where this finish time falls among every player's current best time.">Current Place</button></th>
+            <th data-sort-type="number"{% if map_only_search %} aria-sort="ascending"{% endif %}><button type="button" class="sort-button">Time</button></th>
+            <th data-sort-type="date"><button type="button" class="sort-button">Finished</button></th>
+            <th><button type="button" class="sort-button">Server</button></th>
+            <th><button type="button" class="sort-button">Content</button></th>
+            <th><button type="button" class="sort-button">GameID</button></th>
+            <th><span class="visually-hidden">Action</span></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for row in results %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+            <td><span class="kind-badge {{ row.kind }}">{{ row.kind_label }}</span></td><td>{{ row.map_name }}</td>
+            {% if cross_map_search %}<td data-sort="{{ row.category }} {{ row.stars|default_if_none:'' }}">{{ row.category }}{% if row.stars is not None %}, {{ row.stars }} Star{{ row.stars|pluralize }}{% endif %}</td>{% endif %}
+            <td class="players" data-sort="{{ row.players }}">{% for player in row.player_links %}<a href="?{{ player.checkpoint_query }}">{{ player.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</td>
+            <td data-sort="{{ row.current_place|default:'999999999' }}">{% if row.current_place %}#{{ row.current_place }}{% else %}Unavailable{% endif %}</td>
+            <td data-sort="{{ row.time_value }}">{{ row.time_value|floatformat:2 }}</td><td data-sort="{{ row.finished_at|date:'c' }}">{{ row.finished_at }}</td><td>{{ row.server }}</td>
+            <td><span class="impact-badge">{{ row.impact }}</span></td>
+            <td class="game-id">{% if row.game_id %}<div class="game-actions"><a href="{% url 'admin:ranks_rankgraveyard_changelist' %}?live-map_name={{ row.map_name|urlencode }}&amp;live-game_id={{ row.game_id|urlencode }}">{{ row.game_id }}</a><a class="button" href="/teehistorian2demo.php?gameid={{ row.game_id|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td>
+            <td><div class="row-actions">{% if row.checkpoint_query %}<a class="button" href="?{{ row.checkpoint_query }}">Checkpoint Scan</a>{% elif row.kind == 'rank' %}<button type="button" class="button disabled" disabled title="This rank has no recorded checkpoint times.">No Checkpoints</button>{% endif %}<a class="button" href="{% url 'admin:ranks_rankgraveyard_preview' %}?target={{ row.token|urlencode }}">Review</a></div></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% if map_only_search and result_page.has_other_pages %}
+<nav class="paginator" aria-label="Map Records Pages">
+    {% if result_page.has_previous %}<a href="?{{ page_query }}&amp;page={{ result_page.previous_page_number }}">Previous</a>{% endif %}
+    <span>{{ result_page.start_index }}-{{ result_page.end_index }} Of {{ result_page.paginator.count }}</span>
+    {% if result_page.has_next %}<a href="?{{ page_query }}&amp;page={{ result_page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% endif %}
+{% elif search_requested %}
+<p class="empty">No matching records in the live database.</p>
+{% endif %}
+
+{% if player_token %}
+<div class="bulk-action">
+    <div>
+        <strong>Player-Wide Action</strong>
+        <p>Review every normal rank and every complete team containing {{ search_form.cleaned_data.player_name }}.</p>
+    </div>
+    <a class="button deletelink" href="{% url 'admin:ranks_rankgraveyard_preview' %}?target={{ player_token|urlencode }}">Review All Ranks</a>
+</div>
+{% endif %}
+{% endif %}
+
+{% if active_tab == 'checkpoint' %}
+<section class="module">
+    <h2>Checkpoint Scan</h2>
+    <form method="get">
+        <input type="hidden" name="submit" value="checkpoint">
+        {{ checkpoint_form.source_rank.errors }}
+        {{ checkpoint_form.source_rank }}
+        <div class="fields">
+            {% for field in checkpoint_form.visible_fields %}
+            <div class="field">
+                {{ field.errors }}
+                {{ field.label_tag }}
+                {% if field.help_text %}<span class="field-help" tabindex="0" title="{{ field.help_text }}" aria-label="{{ field.help_text }}">ⓘ</span>{% endif %}
+                {% if field.name == 'map_name' %}<div class="map-lookup">{{ field }}<a href="{% url 'admin:maps_map_changelist' %}?_to_field=name&amp;_popup=1" id="lookup_{{ field.id_for_label }}" class="related-lookup" title="Choose Map" aria-label="Choose Map"></a></div>{% else %}{{ field }}{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="actions">
+            <input type="submit" value="Find Matching Checkpoints" class="default">
+            <span class="help">Enter a map, or enter a player to scan the selected category.</span>
+        </div>
+        {% if checkpoint_source %}<p class="help">Scanning exact rank: {{ checkpoint_source.player_name }}, {{ checkpoint_source.time_seconds|floatformat:2 }} seconds, {{ checkpoint_source.finished_at }}.</p>{% endif %}
+    </form>
+</section>
+
+{% if checkpoint_cross_map %}
+<nav class="tabs category-tabs" aria-label="Checkpoint Map Categories">
+    {% for tab in checkpoint_category_tabs %}
+        {% if tab.available %}<a href="?{{ checkpoint_category_query }}&amp;checkpoint_category={{ tab.name|urlencode }}" class="{% if tab.selected %}current{% endif %}"{% if tab.selected %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% else %}<span class="disabled" aria-disabled="true">{{ tab.label }}</span>{% endif %}
+    {% endfor %}
+</nav>
+{% if checkpoint_groups %}
+<div class="results" data-rank-groups>
+    <div class="rank-group-header">
+        <button type="button" class="sort-button" data-group-sort="map">Map</button>
+        <button type="button" class="sort-button" data-group-sort="category">Category</button>
+        <button type="button" class="sort-button" data-group-sort="records">Suspicious Groups</button>
+    </div>
+    {% for group in checkpoint_groups %}
+        <details class="rank-group" data-map="{{ group.map_name }}" data-category="{{ group.category }} {{ group.stars|default_if_none:'' }}" data-records="{{ group.rows|length }}">
+            <summary>
+                <span>{{ group.map_name }}</span>
+                <span>{{ group.category|default:'Unknown' }}{% if group.stars is not None %}, {{ group.stars }} Star{{ group.stars|pluralize }}{% endif %}</span>
+                <span>{{ group.rows|length }} Group{{ group.rows|length|pluralize }}</span>
+            </summary>
+            {% include "admin/ranks/rankgraveyard/_checkpoint_table.html" with clusters=group.rows %}
+        </details>
+    {% endfor %}
+</div>
+{% else %}
+<p class="empty">No matching checkpoint clusters in these maps.</p>
+{% endif %}
+{% if checkpoint_page.has_other_pages %}
+<nav class="paginator" aria-label="Checkpoint Result Pages">
+    {% if checkpoint_page.has_previous %}<a href="?{{ checkpoint_page_query }}&amp;checkpoint_page={{ checkpoint_page.previous_page_number }}">Previous</a>{% endif %}
+    <span>{{ checkpoint_page.number }} / {{ checkpoint_page.paginator.num_pages }}</span>
+    {% if checkpoint_page.has_next %}<a href="?{{ checkpoint_page_query }}&amp;checkpoint_page={{ checkpoint_page.next_page_number }}">Next</a>{% endif %}
+</nav>
+{% endif %}
+{% elif checkpoint_results %}
+    {% include "admin/ranks/rankgraveyard/_checkpoint_table.html" with clusters=checkpoint_results %}
+{% elif checkpoint_form.is_bound and checkpoint_form.is_valid %}
+    <p class="empty">No matching checkpoint clusters.</p>
+{% endif %}
+{% endif %}
+
+{% if active_tab == 'history' %}
+{% include "admin/ranks/_history.html" %}
+{% endif %}
+</div>
+<script>
+const checkpointSource = document.getElementById('id_scan-source_rank');
+if (checkpointSource && checkpointSource.value) {
+    ['id_scan-map_name', 'id_scan-player_name'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('input', () => { checkpointSource.value = ''; });
+    });
+}
+const checkpointPlayer = document.getElementById('id_scan-player_name');
+if (checkpointPlayer) {
+    const playerOnlyFields = ['id_scan-leaderboard_depth', 'id_scan-checkpoint_margin'].map(
+        (id) => document.getElementById(id)
+    );
+    const updatePlayerOnlyFields = () => {
+        const disabled = !checkpointPlayer.value.trim();
+        playerOnlyFields.forEach((field) => {
+            field.disabled = disabled;
+            field.closest('.field').classList.toggle('player-only-disabled', disabled);
+            field.closest('.field').title = disabled ? 'Available For Player Scans Only.' : '';
+        });
+    };
+    checkpointPlayer.addEventListener('input', updatePlayerOnlyFields);
+    updatePlayerOnlyFields();
+}
+const mapRankLimit = document.getElementById('id_live-map_rank_limit');
+if (mapRankLimit) {
+    const mapField = document.getElementById('id_live-map_name');
+    const otherFields = [
+        'id_live-player_name', 'id_live-time', 'id_live-finished_on', 'id_live-game_id'
+    ].map((id) => document.getElementById(id));
+    const warning = document.getElementById('map-rank-limit-warning');
+    const updateMapRankLimit = () => {
+        const disabled = !mapField.value.trim() || otherFields.some((field) => field.value.trim());
+        mapRankLimit.disabled = disabled;
+        mapRankLimit.closest('.field').classList.toggle('map-only-disabled', disabled);
+        warning.hidden = disabled || mapRankLimit.value !== 'all';
+    };
+    [mapField, mapRankLimit, ...otherFields].forEach((field) => {
+        field.addEventListener('input', updateMapRankLimit);
+        field.addEventListener('change', updateMapRankLimit);
+    });
+    updateMapRankLimit();
+}
+document.querySelectorAll('table[data-sort-table]').forEach((table) => {
+    const body = table.tBodies[0];
+    const rows = () => Array.from(body.rows).filter((row) => !row.querySelector('.empty'));
+    const buttons = Array.from(table.querySelectorAll('.sort-button')).filter(
+        (button) => button.closest('table') === table
+    );
+    buttons.forEach((button, column) => {
+        button.addEventListener('click', () => {
+            const header = button.closest('th');
+            const ascending = header.getAttribute('aria-sort') !== 'ascending';
+            buttons.forEach((item) => item.closest('th').removeAttribute('aria-sort'));
+            header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+            const type = header.dataset.sortType || 'text';
+            const direction = ascending ? 1 : -1;
+            rows().sort((left, right) => {
+                const leftValue = left.cells[column].dataset.sort || left.cells[column].textContent.trim();
+                const rightValue = right.cells[column].dataset.sort || right.cells[column].textContent.trim();
+                if (type === 'number') return direction * (Number(leftValue) - Number(rightValue));
+                if (type === 'date') return direction * (Date.parse(leftValue) - Date.parse(rightValue));
+                return direction * leftValue.localeCompare(rightValue, undefined, {numeric: true, sensitivity: 'base'});
+            }).forEach((row) => body.appendChild(row));
+        });
+    });
+});
+document.querySelectorAll('[data-rank-groups]').forEach((list) => {
+    const groups = () => Array.from(list.querySelectorAll(':scope > .rank-group'));
+    list.querySelectorAll('[data-group-sort]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const field = button.dataset.groupSort;
+            const ascending = button.getAttribute('aria-sort') !== 'ascending';
+            list.querySelectorAll('[aria-sort]').forEach((item) => item.removeAttribute('aria-sort'));
+            button.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+            const direction = ascending ? 1 : -1;
+            groups().sort((left, right) => {
+                if (field === 'records') {
+                    return direction * (Number(left.dataset[field]) - Number(right.dataset[field]));
+                }
+                return direction * left.dataset[field].localeCompare(
+                    right.dataset[field], undefined, {numeric: true, sensitivity: 'base'}
+                );
+            }).forEach((group) => list.appendChild(group));
+        });
+    });
+});
+const checkpointMode = document.getElementById('id_scan-mode');
+if (checkpointMode) {
+    const startLabel = document.querySelector('label[for="id_scan-start_checkpoint"]');
+    const endField = document.getElementById('id_scan-end_checkpoint').closest('.field');
+    const showCheckpointFields = () => {
+        const single = checkpointMode.value === 'single';
+        startLabel.textContent = single ? 'Selected CP:' : 'Starting CP:';
+        endField.hidden = single;
+    };
+    checkpointMode.addEventListener('change', showCheckpointFields);
+    showCheckpointFields();
+}
+const loadingIndicator = document.querySelector('.rank-loading');
+const recordsPage = document.querySelector('.rank-graveyard');
+const showLoading = () => {
+    loadingIndicator.hidden = false;
+    recordsPage.setAttribute('aria-busy', 'true');
+};
+const afterLoadingPaints = (action) => {
+    requestAnimationFrame(() => requestAnimationFrame(action));
+};
+document.querySelectorAll('.rank-graveyard form').forEach((form) => {
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        showLoading();
+        afterLoadingPaints(() => HTMLFormElement.prototype.submit.call(form));
+    });
+});
+document.querySelectorAll('.category-tabs a, .paginator a').forEach((link) => {
+    link.addEventListener('click', (event) => {
+        if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        showLoading();
+        afterLoadingPaints(() => window.location.assign(link.href));
+    });
+});
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted) {
+        loadingIndicator.hidden = true;
+        recordsPage.removeAttribute('aria-busy');
+    }
+});
+</script>
+{% endblock %}

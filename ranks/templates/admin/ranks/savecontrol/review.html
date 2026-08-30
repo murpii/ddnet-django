@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load i18n rank_links %}
+{% block extrastyle %}{{ block.super }}
+<style>
+.save-review { max-width:1100px; }
+.save-review .summary-table { width:100%; }
+.save-review .summary-table th { width:190px; }
+.save-review .status-badge { display:inline-block; border-radius:999px; padding:.25rem .6rem; background:#fff3cd; color:#664d03; }
+.save-review .save-data { border:1px solid var(--hairline-color); margin:1.5rem 0; padding:0; }
+.save-review .save-data summary { cursor:pointer; font-weight:600; padding:1rem; }
+.save-review .save-data pre { border-top:1px solid var(--hairline-color); margin:0; max-height:420px; overflow:auto; padding:1rem; white-space:pre-wrap; overflow-wrap:anywhere; }
+.save-review .form-row { display:grid; gap:.5rem; max-width:720px; }
+.save-review .form-row label { font-weight:600; }
+.save-review textarea { box-sizing:border-box; max-width:100%; width:100%; }
+.save-review .restore-note { color:var(--body-quiet-color); margin:.4rem 0 0; }
+.save-review .submit-row { align-items:center; display:flex; gap:.75rem; justify-content:flex-start; }
+.save-review .submit-row input { float:none; margin:0; }
+.save-review .cancel-link,.save-review .submit-row input { align-items:center; box-sizing:border-box; display:inline-flex; justify-content:center; min-height:40px; padding:10px 15px; }
+.save-review .similar-saves { margin:1.5rem 0; overflow-x:auto; }
+.save-review .similar-saves table { width:100%; }
+.save-review .game-actions { align-items:flex-start; display:flex; flex-direction:column; gap:.35rem; }
+.save-review .info-hint { cursor:help; font-size:.85em; font-weight:400; }
+</style>
+{% endblock %}
+{% block breadcrumbs %}<div class="breadcrumbs"><a href="{% url 'admin:index' %}">{% trans 'Home' %}</a> &rsaquo; <a href="{% url 'admin:ranks_savecontrol_changelist' %}">Savegame Control</a> &rsaquo; Confirm Save Recovery</div>{% endblock %}
+{% block content %}
+<div class="save-review">
+<div class="module">
+<h2>Deleted Save</h2>
+<table class="summary-table">
+<tr><th>Map</th><td>{{ save.map_name }}</td></tr>
+<tr><th>Save Code</th><td>{{ save.code }}</td></tr>
+<tr><th>Players</th><td>{% for player in save.players %}<a href="{{ player|player_profile_url }}">{{ player }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+<tr><th>Saved At</th><td>{{ save.saved_at_display|date:'N j, Y, P' }}</td></tr>
+<tr><th>Deleted At</th><td>{{ save.deleted_at_display|date:'N j, Y, P'|default:'Unavailable' }}</td></tr>
+<tr><th>Server</th><td>{{ save.server|default:'Unavailable' }}</td></tr>
+<tr><th>DDNet 7</th><td>{{ save.ddnet7|yesno:'Yes,No' }}</td></tr>
+<tr><th>Save ID</th><td>{{ save.save_id|default:'Unavailable' }}</td></tr>
+<tr><th>Game UUID</th><td>{% if save.game_uuid %}<div class="game-actions"><span>{{ save.game_uuid }}</span><a class="button" href="/teehistorian2demo.php?gameid={{ save.game_uuid|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td></tr>
+<tr><th>Status</th><td><span class="status-badge">{% if state_key == 'missing' %}Available To Restore{% else %}{{ status }}{% endif %}</span></td></tr>
+</table>
+</div>
+<section class="module similar-saves">
+<h2>Similar Saves In Live Database <span class="info-hint" tabindex="0" title="Matches live saves on the same map with the same Teehistorian ID and at least one shared player. Team size does not matter." aria-label="Matches live saves on the same map with the same Teehistorian ID and at least one shared player. Team size does not matter.">ⓘ</span></h2>
+{% if not save.game_uuid %}<p>This save has no embedded Teehistorian ID, so similar saves cannot be checked.</p>{% endif %}
+{% if similar_saves_truncated %}<p class="warning">Showing the newest 100 matching saves.</p>{% endif %}
+{% if similar_saves %}<table><thead><tr><th>Save Code</th><th>Players</th><th>Saved At</th><th>Server</th><th>Save ID</th><th>Game UUID</th></tr></thead><tbody>
+{% for similar in similar_saves %}<tr><td>{{ similar.code }}</td><td>{% for player in similar.players %}{% if player in similar.matching_players %}<strong><a href="{{ player|player_profile_url }}">{{ player }}</a></strong>{% else %}<a href="{{ player|player_profile_url }}">{{ player }}</a>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}</td><td>{{ similar.saved_at|date:'N j, Y, P' }}</td><td>{{ similar.server|default:'Unavailable' }}</td><td>{{ similar.save_id|default:'Unavailable' }}</td><td>{% if similar.game_uuid %}<div class="game-actions"><span>{{ similar.game_uuid }}</span><a class="button" href="/teehistorian2demo.php?gameid={{ similar.game_uuid|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td></tr>{% endfor %}
+</tbody></table>{% elif save.game_uuid %}<p>No live saves matched these conditions.</p>{% endif %}
+</section>
+<details class="save-data"><summary>Exact Save Data</summary><pre>{{ save.savegame }}</pre></details>
+<form method="post" action="{% url 'admin:ranks_savecontrol_restore' %}">
+{% csrf_token %}{{ form.target }}
+<fieldset class="module aligned"><div class="form-row">{{ form.reason.errors }}{{ form.reason.label_tag }} {{ form.reason }}<p class="restore-note">The exact savedata and its original timestamp will be inserted into the live database.</p></div></fieldset>
+<div class="submit-row"><a class="button cancel-link" href="{% url 'admin:ranks_savecontrol_changelist' %}">Cancel</a>{% if state_key == 'missing' %}<input type="submit" class="default" value="Restore To Live Database">{% else %}<span>This save cannot be restored while its map and code are live.</span>{% endif %}</div>
+</form>
+</div>
+{% endblock %}

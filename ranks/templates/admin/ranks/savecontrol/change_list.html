@@ -1,0 +1,124 @@
+{% extends "admin/base_site.html" %}
+{% load i18n rank_links %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+<a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+&rsaquo; Savegame Control
+</div>
+{% endblock %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+.save-control .tabs { display:flex; gap:.5rem; border-bottom:1px solid var(--hairline-color); margin-bottom:2rem; }
+.save-control .tabs a { padding:.8rem 1rem; color:var(--body-fg); text-decoration:none; }
+.save-control .tabs .current { border:1px solid var(--hairline-color); border-bottom-color:var(--body-bg); margin-bottom:-1px; font-weight:600; }
+.save-control .fields { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; padding:1rem; }
+.save-control .field label { display:block; font-weight:600; margin-bottom:.35rem; }
+.save-control .field input,.save-control .field select { box-sizing:border-box; width:100%; min-height:38px; }
+.save-control .actions { padding:0 1rem 1rem; }
+.save-control .table-wrap { overflow-x:auto; }
+.save-control table { width:100%; }
+.save-control .player-list { display:flex; flex-wrap:wrap; gap:.35rem .7rem; }
+.save-control .status-badge { display:inline-block; border-radius:999px; padding:.25rem .55rem; background:#eee; }
+.save-control .status-badge.live { background:#d9f3df; color:#185b29; }
+.save-control .status-badge.conflict { background:#ffe1d7; color:#7a240d; }
+.save-control .game-actions { align-items:flex-start; display:flex; flex-direction:column; gap:.35rem; }
+.save-control .notice { padding:1rem; }
+.save-control .client-paginator { display:flex; align-items:center; gap:.7rem; margin:1rem 0; }
+.save-control .client-paginator[hidden] { display:none; }
+.save-loading { position:fixed; inset:0; z-index:1000; display:grid; place-content:center; background:rgba(255,255,255,.75); font-size:1.2rem; font-weight:600; }
+.save-loading[hidden] { display:none; }
+.sort-button { border:0; background:none; color:inherit; cursor:pointer; font:inherit; padding:0; }
+.visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+@media (max-width: 767px) {
+    .save-control .fields { grid-template-columns:1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="save-control">
+<div class="save-loading" hidden role="status">Loading Save Data...</div>
+<nav class="tabs" aria-label="Savegame Control Sections">
+    <a href="?tab=recovery" class="{% if active_tab == 'recovery' %}current{% endif %}">Save Recovery</a>
+    <a href="?tab=history" class="{% if active_tab == 'history' %}current{% endif %}">History</a>
+</nav>
+
+{% if error %}<p class="errornote">{{ error }}</p>{% endif %}
+
+{% if active_tab == 'recovery' %}
+<section class="module">
+    <h2>Find Deleted Saves</h2>
+    <form method="get" data-loading-form>
+        <input type="hidden" name="submit" value="save">
+        <div class="fields">
+            {% for field in search_form %}<div class="field">{{ field.errors }}{{ field.label_tag }}{{ field }}{% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}</div>{% endfor %}
+        </div>
+        {{ search_form.non_field_errors }}
+        <div class="actions"><input type="submit" value="Search Deleted Saves" class="default"></div>
+    </form>
+</section>
+
+{% if result_count > results|length %}<p class="warning notice">Found {{ result_count }} matching saves. Showing the newest {{ results|length }}. Narrow the search to review the rest.</p>{% elif search_form.is_bound and search_form.is_valid %}<p class="notice">Found {{ result_count }} matching save{{ result_count|pluralize }}.</p>{% endif %}
+{% if results %}
+<div class="table-wrap">
+<table id="save-results">
+    <thead><tr><th>Deleted</th><th>Map</th><th>Save Code</th><th>Players</th><th>Server</th><th>Game UUID</th><th>Status</th><th><span class="visually-hidden">Action</span></th></tr></thead>
+    <tbody>
+    {% for result in results %}
+    <tr data-result-row>
+        <td data-sort="{{ result.deleted_at }}">{{ result.deleted_at_display|date:'N j, Y, P'|default:'Unavailable' }}</td>
+        <td>{{ result.map_name }}</td>
+        <td>{{ result.code }}</td>
+        <td><div class="player-list">{% for player in result.players %}<a href="{{ player|player_profile_url }}">{{ player }}</a>{% endfor %}</div></td>
+        <td>{{ result.server|default:'Unavailable' }}</td>
+        <td>{% if result.game_uuid %}<div class="game-actions"><span>{{ result.game_uuid }}</span><a class="button" href="/teehistorian2demo.php?gameid={{ result.game_uuid|urlencode }}">Teehistorian Demo</a></div>{% else %}Unavailable{% endif %}</td>
+        <td><span class="status-badge {{ result.state_key }}">{{ result.status }}</span></td>
+        <td><a class="button" data-loading-link href="{% url 'admin:ranks_savecontrol_review' %}?target={{ result.token|urlencode }}">Review</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+<nav class="client-paginator" aria-label="Save Result Pages" hidden>
+    <button type="button" data-previous>Previous</button><span data-page-label></span><button type="button" data-next>Next</button>
+</nav>
+{% elif search_form.is_bound and search_form.is_valid and not error %}<p class="empty">No deleted saves matched this search.</p>{% endif %}
+{% else %}
+{% include "admin/ranks/_history.html" %}
+{% endif %}
+</div>
+<script>
+const loading = document.querySelector('.save-loading');
+const showLoading = () => { loading.hidden = false; document.querySelector('.save-control').setAttribute('aria-busy', 'true'); };
+document.querySelectorAll('[data-loading-form]').forEach((form) => form.addEventListener('submit', showLoading));
+document.querySelectorAll('[data-loading-link]').forEach((link) => link.addEventListener('click', showLoading));
+const rows = Array.from(document.querySelectorAll('[data-result-row]'));
+const paginator = document.querySelector('.client-paginator');
+if (rows.length > 100) {
+    let page = 1;
+    const pages = Math.ceil(rows.length / 100);
+    const showPage = () => {
+        rows.forEach((row, index) => { row.hidden = Math.floor(index / 100) + 1 !== page; });
+        paginator.querySelector('[data-page-label]').textContent = `${page} / ${pages}`;
+        paginator.querySelector('[data-previous]').disabled = page === 1;
+        paginator.querySelector('[data-next]').disabled = page === pages;
+    };
+    paginator.hidden = false;
+    paginator.querySelector('[data-previous]').addEventListener('click', () => { page -= 1; showPage(); });
+    paginator.querySelector('[data-next]').addEventListener('click', () => { page += 1; showPage(); });
+    showPage();
+}
+document.querySelectorAll('table[data-sort-table]').forEach((table) => {
+    const body = table.tBodies[0];
+    const buttons = Array.from(table.querySelectorAll('.sort-button'));
+    buttons.forEach((button, column) => button.addEventListener('click', () => {
+        const ascending = button.closest('th').getAttribute('aria-sort') !== 'ascending';
+        buttons.forEach((item) => item.closest('th').removeAttribute('aria-sort'));
+        button.closest('th').setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+        Array.from(body.rows).sort((left, right) => (ascending ? 1 : -1) * left.cells[column].textContent.trim().localeCompare(right.cells[column].textContent.trim(), undefined, {numeric:true, sensitivity:'base'})).forEach((row) => body.appendChild(row));
+    }));
+});
+</script>
+{% endblock %}

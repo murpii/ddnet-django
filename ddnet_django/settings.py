@@ -20,6 +20,7 @@ CSRF_COOKIE_SECURE = True
 INSTALLED_APPS = [
     'ddnet.apps.DDNetConfig',
     'maps.apps.MapsConfig',
+    'ranks.apps.RanksConfig',
     'skins.apps.SkinsConfig',
     'servers.apps.ServersConfig',
     'django.contrib.admin',

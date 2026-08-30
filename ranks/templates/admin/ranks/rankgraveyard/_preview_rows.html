@@ -1,0 +1,180 @@
+{% load rank_links %}
+<style>
+    .rank-graveyard-page { max-width: 1600px; }
+    .rank-graveyard-page .graveyard-warning {
+        margin-bottom: 24px;
+        padding: 16px 18px;
+        border: 1px solid var(--hairline-color);
+        border-left: 4px solid var(--delete-button-bg);
+        background: var(--darkened-bg);
+    }
+    .rank-graveyard-page .graveyard-warning p { margin: 6px 0 0; }
+    .rank-graveyard-page .table-wrap { overflow-x: auto; margin-bottom: 24px; }
+    .rank-graveyard-page table { width: 100%; }
+    .rank-graveyard-page td { vertical-align: middle; }
+    .rank-graveyard-page textarea { box-sizing: border-box; width: 100%; min-height: 110px; }
+    .rank-graveyard-page .submit-row { display: flex; justify-content: flex-end; gap: 10px; }
+    .rank-graveyard-page .button,
+    .rank-graveyard-page .submit-row input {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+    .rank-graveyard-page .game-id { font-family: var(--font-family-monospace); }
+    .rank-graveyard-page .game-actions { display: flex; align-items: flex-start; flex-direction: column; gap: 6px; }
+    .rank-graveyard-page .game-actions > a:first-child { overflow-wrap: anywhere; }
+    .rank-graveyard-page .players { min-width: 130px; }
+    .rank-graveyard-page .players a { white-space: nowrap; }
+    .rank-graveyard-page .selection-column { text-align: center; white-space: nowrap; }
+    .rank-graveyard-page .kind-badge,
+    .rank-graveyard-page .impact-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--selected-row);
+        white-space: nowrap;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .rank-graveyard-page .kind-badge.team { color: var(--link-selected-fg); }
+    .rank-graveyard-page tr.source-rank td { background: var(--selected-row); }
+    .rank-graveyard-page .source-player { font-weight: 700; }
+    .rank-graveyard-page .source-badge {
+        display: inline-block;
+        margin-left: 5px;
+        padding: 2px 6px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .rank-graveyard-page .sort-button {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-transform: inherit;
+        cursor: pointer;
+    }
+    .rank-graveyard-page th[aria-sort="ascending"] .sort-button::after { content: "  ▲"; }
+    .rank-graveyard-page th[aria-sort="descending"] .sort-button::after { content: "  ▼"; }
+    .rank-graveyard-page th:not([aria-sort]) .sort-button::after { content: "  ↕"; opacity: 0.45; }
+    .rank-graveyard-page .missing-rows { margin-bottom: 24px; padding: 16px 18px; background: var(--darkened-bg); }
+    .rank-graveyard-page .checkpoint-details { min-width: 150px; }
+    .rank-graveyard-page .checkpoint-details summary { cursor: pointer; white-space: nowrap; }
+    .rank-graveyard-page .checkpoint-player { margin: 10px 0 5px; }
+    .rank-graveyard-page .checkpoint-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+        gap: 4px;
+        min-width: 360px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    .rank-graveyard-page .checkpoint-list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        padding: 4px 6px;
+        background: var(--darkened-bg);
+        white-space: nowrap;
+    }
+    .rank-graveyard-page .checkpoint-list li.selected { background: var(--selected-row); }
+    .rank-graveyard-page .cluster-signatures {
+        margin-bottom: 24px;
+        padding: 14px 18px;
+        background: var(--darkened-bg);
+    }
+    .rank-graveyard-page .cluster-signatures h2 { margin-top: 0; }
+    .rank-graveyard-page .cluster-signatures li { margin: 5px 0; }
+    .rank-graveyard-page .player-map-group { margin-bottom: 8px; border: 1px solid var(--hairline-color); }
+    .rank-graveyard-page .player-map-group summary { padding: 12px 14px; cursor: pointer; background: var(--darkened-bg); }
+    .rank-graveyard-page .player-map-content { padding: 12px 14px; }
+</style>
+
+{% if preview.checkpoint_signatures %}
+<section class="cluster-signatures">
+    <h2>Cluster Checkpoint Signatures</h2>
+    <p>Matching range: {{ preview.checkpoint_label }}</p>
+    <ol>
+    {% for signature in preview.checkpoint_signatures %}
+        <li><strong>Signature {{ signature.number }}</strong>: {{ signature.text }}. Margin: {{ signature.margin }}.</li>
+    {% endfor %}
+    </ol>
+</section>
+{% endif %}
+
+{% if preview.action_scope %}
+<p>This action archived {{ preview.finish_count }} race row{{ preview.finish_count|pluralize }} and {{ preview.team_count }} team rank{{ preview.team_count|pluralize }}.</p>
+<h2>Affected Maps</h2>
+{% for group in preview.action_map_groups %}
+<details class="player-map-group"{% if group.individual_preview %} data-load-url="?archive_map={{ group.map_name|urlencode }}"{% endif %}>
+    <summary><strong>{{ group.map_name }}</strong>, {{ group.finish_count }} Race Row{{ group.finish_count|pluralize }}{% if group.team_count %} + {{ group.team_count }} Team Rank{{ group.team_count|pluralize }}{% endif %}</summary>
+    <div class="player-map-content">{% if group.individual_preview %}Open to load individual ranks.{% else %}Too many ranks for an inline review. Restore the remaining action together.{% endif %}</div>
+</details>
+{% empty %}
+<p>No archived ranks were available.</p>
+{% endfor %}
+{% elif preview.player_scope %}
+<p><label for="select-entire-player"><input type="checkbox" id="select-entire-player" data-player="{{ preview.target }}"{% if form.all_records.value %} checked{% endif %}> Select Entire Player</label></p>
+<p>This includes {{ preview.finish_count }} Normal Rank{{ preview.finish_count|pluralize }} and {{ preview.team_count }} Team Rank{{ preview.team_count|pluralize }}. Linked team members' race rows are included when required to keep team ranks complete.</p>
+<h2>Affected Maps</h2>
+{% for group in preview.player_map_groups %}
+<details class="player-map-group"{% if group.individual_preview %} data-load-url="{% url 'admin:ranks_rankgraveyard_preview' %}?target={{ form.target.value|urlencode }}&amp;preview_map={{ group.map_name|urlencode }}"{% endif %}>
+    <summary><strong>{{ group.map_name }}</strong>, {{ group.finish_count }} Normal Rank{{ group.finish_count|pluralize }}{% if group.team_count %} + {{ group.team_count }} Team Rank{{ group.team_count|pluralize }}{% endif %}</summary>
+    <div class="player-map-content">{% if group.individual_preview %}Open to load individual ranks.{% else %}<a class="button" href="{% url 'admin:ranks_rankgraveyard_changelist' %}?submit=live&amp;live-map_name={{ group.map_name|urlencode }}&amp;live-player_name={{ preview.target|urlencode }}">Review Individual Ranks</a>{% endif %}</div>
+</details>
+{% empty %}
+<p>No ranks were available.</p>
+{% endfor %}
+{% else %}
+{% if preview.selection_enabled %}<p><label for="select-all-ranks"><input type="checkbox" id="select-all-ranks"> Select All Ranks</label></p>{% endif %}
+{% if preview.checkpoint_entry_groups %}
+    {% for group in preview.checkpoint_entry_groups %}
+        {% include "admin/ranks/rankgraveyard/_preview_table.html" with table_heading=group.heading table_note=group.note table_entries=group.entries %}
+    {% endfor %}
+{% else %}
+    {% include "admin/ranks/rankgraveyard/_preview_table.html" with table_heading="Affected Ranks" table_entries=preview.entries %}
+{% endif %}
+{% endif %}
+
+{% if preview.missing %}
+<details class="missing-rows">
+<summary><strong>{{ preview.missing|length }} Missing Linked Race Row{{ preview.missing|length|pluralize }}</strong></summary>
+<p>These expected race rows are already absent. The action records them but cannot archive them.</p>
+<ul>
+{% for row in preview.missing %}
+    <li>{{ row.map_name }}, <a href="{{ row.player_name|player_profile_url }}">{{ row.player_name }}</a>, {{ row.time_value|floatformat:2 }}, {{ row.finished_at }}</li>
+{% endfor %}
+</ul>
+</details>
+{% endif %}
+
+<script>
+window.initializePreviewTables = (root = document) => root.querySelectorAll('table[data-sort-table]').forEach((table) => {
+    const body = table.tBodies[0];
+    const rows = () => Array.from(body.rows).filter((row) => !row.querySelector('[colspan]'));
+    table.querySelectorAll('.sort-button').forEach((button, column) => {
+        button.addEventListener('click', () => {
+            const header = button.closest('th');
+            const ascending = header.getAttribute('aria-sort') !== 'ascending';
+            table.querySelectorAll('th[aria-sort]').forEach((item) => item.removeAttribute('aria-sort'));
+            header.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+            const type = header.dataset.sortType || 'text';
+            const direction = ascending ? 1 : -1;
+            rows().sort((left, right) => {
+                const leftValue = left.cells[column].dataset.sort || left.cells[column].textContent.trim();
+                const rightValue = right.cells[column].dataset.sort || right.cells[column].textContent.trim();
+                if (type === 'number') return direction * (Number(leftValue) - Number(rightValue));
+                if (type === 'date') return direction * (Date.parse(leftValue) - Date.parse(rightValue));
+                return direction * leftValue.localeCompare(rightValue, undefined, {numeric: true, sensitivity: 'base'});
+            }).forEach((row) => body.appendChild(row));
+        });
+    });
+});
+window.initializePreviewTables();
+</script>

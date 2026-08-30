@@ -1,0 +1,45 @@
+{% load rank_links %}
+<div class="results table-wrap">
+<table data-sort-table>
+    <thead>
+        <tr>
+            <th><button type="button" class="sort-button">Signature</button></th>
+            {% if checkpoint_player %}<th data-sort-type="number"><button type="button" class="sort-button">Selected Player Ranks</button></th>{% endif %}
+            <th data-sort-type="number"><button type="button" class="sort-button">Players</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button">Ranks</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button">Runs</button></th>
+            <th data-sort-type="number"><button type="button" class="sort-button">Games</button></th>
+            {% if not checkpoint_cross_map %}<th data-sort-type="number"><button type="button" class="sort-button">Team Linked</button></th>{% endif %}
+            <th data-sort-type="date"><button type="button" class="sort-button">First Seen</button></th>
+            <th data-sort-type="date"><button type="button" class="sort-button">Last Seen</button></th>
+            <th><span class="visually-hidden">Action</span></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for cluster in clusters %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+            <td data-sort="{{ cluster.signature }}">
+                {% if cluster.cluster_count > 1 %}
+                    <strong>{{ cluster.cluster_count }} Associated Clusters</strong>
+                    <span class="checkpoint-values">{{ cluster.associated_team_count }} team finish{{ cluster.associated_team_count|pluralize:"es" }} connect these signatures</span>
+                    {% for signature in cluster.signatures %}<span class="checkpoint-values">{{ signature }}</span>{% endfor %}
+                {% else %}
+                    <strong>{{ cluster.checkpoint_label }}</strong>
+                    <span class="checkpoint-values">{{ cluster.signature }}</span>
+                    {% if cluster.checkpoint_margin %}<span class="checkpoint-values">Margin: {{ cluster.checkpoint_margin }}</span>{% endif %}
+                {% endif %}
+            </td>
+            {% if checkpoint_player %}<td data-sort="{{ cluster.selected_row_count }}"><a href="{{ checkpoint_player|player_profile_url }}">{{ checkpoint_player }}</a>, {{ cluster.selected_row_count }}</td>{% endif %}
+            <td data-sort="{{ cluster.player_count }}">{{ cluster.player_count }}</td>
+            <td data-sort="{{ cluster.row_count }}">{{ cluster.row_count }}</td>
+            <td data-sort="{{ cluster.run_count }}">{{ cluster.run_count }}</td>
+            <td data-sort="{{ cluster.game_count }}">{{ cluster.game_count }}</td>
+            {% if not checkpoint_cross_map %}<td data-sort="{{ cluster.team_row_count }}">{{ cluster.team_row_count }} / {{ cluster.row_count }}</td>{% endif %}
+            <td data-sort="{{ cluster.first_seen|date:'c' }}">{{ cluster.first_seen }}</td>
+            <td data-sort="{{ cluster.last_seen|date:'c' }}">{{ cluster.last_seen }}</td>
+            <td><a class="button" href="{% url 'admin:ranks_rankgraveyard_preview' %}?target={{ cluster.token|urlencode }}">{% if cluster.cluster_count > 1 %}Review Merged Cluster{% elif cluster.leaderboard_sample %}Review Cluster{% elif checkpoint_player %}Review Player Matches{% else %}Review Cluster{% endif %}</a></td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
